@@ -1,0 +1,35 @@
+# Environment & secrets
+.env
+.env.*
+!.env.template
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+venv/
+.venv/
+.playwright-cli/
+
+# Node
+node_modules/
+frontend/dist/
+backend/imessage-bridge/dist/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Claude/Cursor
+.claude/
+.cursor/

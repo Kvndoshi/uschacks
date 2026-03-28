@@ -1,0 +1,231 @@
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --cyan: #00d4ff;
+    --purple: #8b5cf6;
+    --green: #10d9a0;
+    --amber: #f5b942;
+    --red: #f43f5e;
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+
+  body {
+    @apply bg-mind-bg text-white overflow-hidden;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  ::-webkit-scrollbar {
+    width: 3px;
+    height: 3px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: rgba(0, 212, 255, 0.2);
+    border-radius: 2px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 212, 255, 0.4);
+  }
+}
+
+@layer utilities {
+  /* Glassmorphism panels */
+  .glass {
+    background: rgba(10, 13, 22, 0.85);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(26, 35, 64, 0.8);
+  }
+
+  .glass-cyan {
+    background: rgba(0, 212, 255, 0.04);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(0, 212, 255, 0.12);
+  }
+
+  .glass-purple {
+    background: rgba(139, 92, 246, 0.05);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(139, 92, 246, 0.15);
+  }
+
+  /* Glow effects */
+  .glow-cyan {
+    box-shadow: 0 0 20px rgba(0, 212, 255, 0.15), 0 0 60px rgba(0, 212, 255, 0.05);
+  }
+
+  .glow-cyan-strong {
+    box-shadow: 0 0 30px rgba(0, 212, 255, 0.3), 0 0 80px rgba(0, 212, 255, 0.1);
+  }
+
+  .glow-purple {
+    box-shadow: 0 0 20px rgba(139, 92, 246, 0.15), 0 0 60px rgba(139, 92, 246, 0.05);
+  }
+
+  .glow-amber {
+    box-shadow: 0 0 20px rgba(245, 185, 66, 0.2), 0 0 60px rgba(245, 185, 66, 0.06);
+  }
+
+  .glow-green {
+    box-shadow: 0 0 20px rgba(16, 217, 160, 0.2), 0 0 60px rgba(16, 217, 160, 0.06);
+  }
+
+  /* Text gradients */
+  .text-gradient-cyan {
+    @apply bg-clip-text text-transparent;
+    background-image: linear-gradient(135deg, #00d4ff, #8b5cf6);
+  }
+
+  .text-gradient-mind {
+    @apply bg-clip-text text-transparent;
+    background-image: linear-gradient(135deg, #00d4ff 0%, #8b5cf6 50%, #00d4ff 100%);
+    background-size: 200% auto;
+    animation: textShimmer 3s linear infinite;
+  }
+
+  /* Borders */
+  .border-cyan {
+    border-color: rgba(0, 212, 255, 0.3);
+  }
+  .border-purple {
+    border-color: rgba(139, 92, 246, 0.3);
+  }
+
+  /* Neural grid background */
+  .neural-bg {
+    background-color: #060810;
+    background-image:
+      radial-gradient(circle at 25% 25%, rgba(0, 212, 255, 0.03) 0%, transparent 50%),
+      radial-gradient(circle at 75% 75%, rgba(139, 92, 246, 0.03) 0%, transparent 50%),
+      radial-gradient(circle at 1.5px 1.5px, rgba(26, 35, 64, 0.6) 1px, transparent 0);
+    background-size: 100% 100%, 100% 100%, 32px 32px;
+  }
+
+  /* Status ring */
+  .ring-running {
+    box-shadow: 0 0 0 2px rgba(0, 212, 255, 0.5), 0 0 12px rgba(0, 212, 255, 0.3);
+  }
+  .ring-hitl {
+    box-shadow: 0 0 0 2px rgba(245, 185, 66, 0.5), 0 0 12px rgba(245, 185, 66, 0.3);
+  }
+  .ring-complete {
+    box-shadow: 0 0 0 2px rgba(16, 217, 160, 0.5), 0 0 12px rgba(16, 217, 160, 0.3);
+  }
+  .ring-error {
+    box-shadow: 0 0 0 2px rgba(244, 63, 94, 0.5), 0 0 12px rgba(244, 63, 94, 0.3);
+  }
+
+  /* Terminal */
+  .terminal-text {
+    font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+  }
+
+  /* Cyber button */
+  .btn-cyber {
+    @apply relative overflow-hidden transition-all duration-200;
+    background: linear-gradient(135deg, rgba(0, 212, 255, 0.1), rgba(139, 92, 246, 0.1));
+    border: 1px solid rgba(0, 212, 255, 0.2);
+  }
+  .btn-cyber:hover {
+    background: linear-gradient(135deg, rgba(0, 212, 255, 0.15), rgba(139, 92, 246, 0.15));
+    border-color: rgba(0, 212, 255, 0.4);
+    box-shadow: 0 0 15px rgba(0, 212, 255, 0.1);
+  }
+
+  /* Pill status */
+  .status-pill {
+    @apply inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium terminal-text;
+  }
+}
+
+/* ReactFlow overrides */
+.react-flow__background {
+  background-color: #060810 !important;
+}
+
+.react-flow__edge-path {
+  stroke-width: 2 !important;
+  filter: drop-shadow(0 0 4px rgba(0, 212, 255, 0.4));
+}
+
+.react-flow__edge.animated .react-flow__edge-path {
+  stroke-dasharray: 8 4;
+  animation: dashedFlow 0.6s linear infinite;
+}
+
+@keyframes dashedFlow {
+  to { stroke-dashoffset: -12; }
+}
+
+.react-flow__controls {
+  background: rgba(10, 13, 22, 0.9) !important;
+  border: 1px solid rgba(0, 212, 255, 0.12) !important;
+  border-radius: 8px !important;
+  box-shadow: 0 0 15px rgba(0, 212, 255, 0.05) !important;
+}
+
+.react-flow__controls-button {
+  background: transparent !important;
+  border: none !important;
+  border-bottom: 1px solid rgba(0, 212, 255, 0.08) !important;
+  color: rgba(0, 212, 255, 0.5) !important;
+  transition: all 0.15s !important;
+}
+
+.react-flow__controls-button:last-child {
+  border-bottom: none !important;
+}
+
+.react-flow__controls-button:hover {
+  background: rgba(0, 212, 255, 0.08) !important;
+  color: #00d4ff !important;
+}
+
+.react-flow__minimap {
+  background: rgba(10, 13, 22, 0.9) !important;
+  border: 1px solid rgba(0, 212, 255, 0.12) !important;
+  border-radius: 8px !important;
+}
+
+/* Keyframes */
+@keyframes textShimmer {
+  0% { background-position: 0% center; }
+  100% { background-position: 200% center; }
+}
+
+@keyframes nodeEnter {
+  from { opacity: 0; transform: scale(0.5); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes pulseRing {
+  0% { transform: scale(1); opacity: 0.8; }
+  100% { transform: scale(1.8); opacity: 0; }
+}
+
+@keyframes rotateRing {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes rotateRingReverse {
+  from { transform: rotate(360deg); }
+  to { transform: rotate(0deg); }
+}
+
+/* Custom selection */
+::selection {
+  background: rgba(0, 212, 255, 0.25);
+  color: white;
+}
