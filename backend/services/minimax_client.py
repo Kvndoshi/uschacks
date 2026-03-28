@@ -63,6 +63,7 @@ async def classify_intent(
                 "- browser_task: User wants you to DO something in a browser (search, buy, navigate, fill forms, compare prices, book, etc.)\n"
                 "- chat: User is making conversation, asking a knowledge question, or saying something casual\n"
                 "- status_query: User is asking about the status of a running or completed task\n"
+                "- memory_save: User wants you to remember/note/save something for later (e.g. 'remember that...', 'note that...', 'save this...', 'remind me...')\n"
                 "- unclear: Message is ambiguous and you need clarification\n\n"
                 "Respond with ONLY a JSON object: {\"intent\": \"...\", \"confidence\": 0.0-1.0, \"extracted_task\": \"...or null\"}\n"
                 "extracted_task should contain the browser task description if intent is browser_task, otherwise null."
