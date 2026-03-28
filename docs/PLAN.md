@@ -129,12 +129,9 @@ Separate graph for handling messages while swarm is running:
 | `services/imessage_sender.py` | `send_text()`, `send_file()`, `send_status_update()`. Calls bridge HTTP. Retry + queue. |
 | `services/conversation_store.py` | In-memory dict by sender_id. Message history (20), active task IDs, timestamps. Asyncio locks. |
 
-### 3. Frontend - New Files
+### 3. Frontend - No New iMessage UI
 
-| File | Purpose |
-|---|---|
-| `components/iMessage/iMessagePanel.tsx` | Side panel: conversation list, message bubbles, intent badges |
-| `components/iMessage/ConversationBubble.tsx` | Blue (incoming) / Green (outgoing) message bubbles |
+There is **no iMessage panel in the dashboard**. iMessage is purely a backend integration -- users interact via their iPhone's native iMessage app. The dashboard only shows the swarm (hex canvas, agents, tabs, logs) as it already does.
 
 ---
 
@@ -162,45 +159,38 @@ Separate graph for handling messages while swarm is running:
 
 ### Frontend
 
-| File | Change |
-|---|---|
-| `store/useMindStore.ts` | Add `iMessageConversations`, `iMessageEnabled`, actions: `addIMessage`, `updateIMessageStatus` |
-| `store/useWebSocket.ts` | Handle `IMESSAGE_RECEIVED`, `IMESSAGE_SENT`, `IMESSAGE_STATUS` events |
-| `types/mind.types.ts` | Add `iMessageConversation`, `iMessageMessage` interfaces |
-| `App.tsx` | Add iMessage panel toggle (phone icon), 'M' keyboard shortcut |
+No iMessage-specific UI components. Person A redesigns the existing swarm dashboard (hex canvas, agents, logs, command bar) using **Stitch** (Google design tool). The dashboard shows swarm activity regardless of whether the task was triggered from iMessage or the web CommandBar.
 
 ---
 
 ## Team Assignments
 
-### Person A (Non-tech) -- Website Redesign + Demo + Pitch
-Person A owns the entire user-facing experience: redesigning the dashboard UI, building the pitch, and preparing the demo.
+### Person A (Non-tech) -- Dashboard Redesign + Demo + Pitch
+Person A redesigns the existing swarm dashboard using **Stitch** (Google design tool). No iMessage knowledge needed -- Person A only touches the visual layer of the existing hex canvas, agent panels, and command bar.
 
 | # | Task | Effort | Blocked By | Priority |
 |---|---|---|---|---|
-| A1 | Redesign dashboard layout -- modernize the hex canvas, improve colors/spacing/typography | 4h | -- | P0 |
-| A2 | Design + build the iMessage panel UI (conversation bubbles, intent badges, status indicators) | 3h | -- | P0 |
-| A3 | Redesign the CommandBar, EventFeed, and AgentLogPanel for cleaner look | 3h | -- | P0 |
-| A4 | Add a landing/splash page or onboarding screen for the hackathon demo | 2h | -- | P1 |
+| A1 | Redesign dashboard layout in Stitch -- hex canvas, overall page structure, spacing, color palette | 4h | -- | P0 |
+| A2 | Redesign CommandBar, EventFeed ticker, and AgentLogPanel for cleaner look | 3h | -- | P0 |
+| A3 | Redesign QueenNode, WorkerNode, and TabNode hex visuals (shapes, glows, status indicators) | 3h | -- | P0 |
+| A4 | Add a landing/hero page or onboarding screen for the hackathon demo | 2h | -- | P1 |
 | A5 | Build pitch deck -- "Text your AI" narrative, architecture diagrams, market positioning | 4h | -- | P0 |
 | A6 | Prepare demo script + talking points (3-min flow) | 2h | -- | P1 |
 | A7 | Record backup demo video | 1h | Working demo | P2 |
-| A8 | Polish animations, transitions, loading states across the app | 2h | A1-A3 | P1 |
+| A8 | Apply Stitch designs to React components (with help from others if needed) | 3h | A1-A3 | P1 |
 
 ### Person B -- iMessage Kit Integration + Bug Fixes
-Person B owns the Photon iMessage Kit sidecar, the frontend wiring for iMessage events, and fixing existing bugs.
+Person B owns the Photon iMessage Kit sidecar (TypeScript/Node.js on macOS) and fixing existing backend bugs. No frontend work -- iMessage is purely backend.
 
 | # | Task | Effort | Blocked By | Priority |
 |---|---|---|---|---|
 | B1 | Set up `backend/imessage-bridge/` Node.js project + install Photon SDK | 1h | -- | P0 |
 | B2 | Implement Photon polling + webhook POST to FastAPI on new message | 3h | B1 | P0 |
 | B3 | Implement `/send` endpoint for outbound iMessages (text + file attachments) | 2h | B1 | P0 |
-| B4 | Wire WebSocket iMessage events in frontend store (`useMindStore.ts`, `useWebSocket.ts`) | 2h | D3 | P1 |
-| B5 | Add iMessage panel toggle to `App.tsx` + 'M' keyboard shortcut | 1h | A2 | P1 |
-| B6 | Fix `worker.py` agent_logs memory leak (~L282) | 0.5h | -- | P1 |
-| B7 | Fix `tab_manager.py` screenshot cache bloat | 0.5h | -- | P1 |
-| B8 | Fix `queen.py` subtask dependency DAG execution (~L276-312) | 2h | -- | P1 |
-| B9 | End-to-end test: send iMessage -> dashboard shows it -> swarm runs -> reply arrives | 2h | All above | P1 |
+| B4 | Fix `worker.py` agent_logs memory leak (~L282) | 0.5h | -- | P1 |
+| B5 | Fix `tab_manager.py` screenshot cache bloat | 0.5h | -- | P1 |
+| B6 | Fix `queen.py` subtask dependency DAG execution (~L276-312) | 2h | -- | P1 |
+| B7 | End-to-end test: send iMessage -> swarm runs -> reply arrives on phone | 2h | B2, B3, C6 | P1 |
 
 ### Person C -- LangGraph + MiniMax (Backend Logic)
 | # | Task | Effort | Blocked By | Priority |
@@ -224,16 +214,17 @@ Person B owns the Photon iMessage Kit sidecar, the frontend wiring for iMessage 
 
 ### Critical Path
 ```
-C1 (minimax client) --> C2 (test) --> C4 (graph rewrite) --+
-                                                            |
-D1 (router) + D2 (sender) + D3 (config) ------------------+--> C6 (wire) --> B9 (e2e)
-                                                            |
-B1 (bridge) --> B2 (webhook) --> B3 (/send) ---------------+
-                                                            |
-A1+A2+A3 (redesign) --> A5 (pitch) --> A6 (demo script) ---+--> DEMO
+C1 (minimax) --> C4 (graph) --> C6 (wire) --+
+                                             |
+D1 (router) + D2 (sender) + D3 (config) ---+--> B7 (e2e iMessage test)
+                                             |
+B1 (bridge) --> B2 (webhook) --> B3 (/send)-+
+                                             |
+A1 (Stitch redesign) --> A8 (apply to React) --> A5 (pitch) --> DEMO
 ```
 
 **Day 1 parallel starts**: C1 + D1 + D2 + D3 + B1 + A1 -- all independent, everyone productive immediately.
+Person A works completely independently in Stitch -- zero overlap with backend or iMessage work.
 
 ---
 
