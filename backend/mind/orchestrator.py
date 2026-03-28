@@ -96,6 +96,60 @@ def _build_status_text() -> str:
     return "\n".join(parts)
 
 
+async def _save_to_memory(text: str) -> None:
+    """Save user's note/fact to supermemory."""
+    try:
+        await supermemory_service.save_memory(
+            content=text,
+            metadata={"type": "user_note"},
+        )
+        logger.info("Saved to memory: %s", text[:80])
+    except Exception as e:
+        logger.error("Failed to save to memory: %s", e)
+
+
+async def _gemini_chat_reply(
+    text: str,
+    history: list[dict],
+    rag_context: str | None = None,
+) -> str:
+    """Conversational reply via Gemini (no agents, no Queen)."""
+    from services.mistral_client import gemini_chat
+
+    system = (
+        "You are Mindd, an AI assistant with browser automation capabilities. "
+        "Answer the user's question conversationally, clearly, and concisely. "
+        "If they ask you to do something that requires browsing the web, tell them "
+        "you'll get your agents on it. For everything else, answer directly."
+    )
+    if rag_context:
+        system += f"\n\nRelevant context from memory:\n{rag_context}"
+
+    # Build agent context if agents are running
+    try:
+        from routers.chat import _build_agent_context
+        agent_ctx = _build_agent_context()
+        if agent_ctx:
+            system += agent_ctx
+    except Exception:
+        pass
+
+    messages = [{"role": "system", "content": system}]
+    for m in history[-10:]:
+        role = "user" if m.get("direction") == "inbound" else "assistant"
+        content = m.get("text") or m.get("content") or ""
+        if content:
+            messages.append({"role": role, "content": content})
+    messages.append({"role": "user", "content": text})
+
+    try:
+        reply = await gemini_chat(messages, temperature=0.5, max_output_tokens=1024)
+        return reply or "I couldn't generate a response."
+    except Exception as e:
+        logger.error("Gemini chat reply failed: %s", e)
+        return f"Sorry, I ran into an issue: {e}"
+
+
 async def _delegate_to_queen(text: str, task_id: str | None = None) -> str:
     """Hand off to Queen -- she decides whether to answer from knowledge or spawn agents."""
     from mind.queen import execute_task
@@ -170,7 +224,14 @@ async def process(
         yield {"type": "done"}
         return
 
-    # Step 3: RAG lookup for everything else
+    # Step 3: Handle memory_save — user wants to remember something
+    if intent == "memory_save":
+        await _save_to_memory(text)
+        yield {"type": "text", "content": "Got it, I'll remember that."}
+        yield {"type": "done"}
+        return
+
+    # Step 4: RAG lookup for everything else
     rag_context, rag_score = await _rag_lookup(text)
 
     if rag_context:
@@ -186,17 +247,24 @@ async def process(
             return
         except Exception as e:
             logger.warning(
-                "MiniMax answer_with_context failed: %s, falling through to Queen", e
+                "MiniMax answer_with_context failed: %s, falling through", e
             )
 
-    # Step 4: No RAG hit -- delegate to Queen
-    task_text = extracted_task or text
-    logger.info("Orchestrator: no RAG hit, delegating to Queen: %s", task_text[:80])
-    task_id = await _delegate_to_queen(task_text)
-
-    yield {
-        "type": "task_dispatched",
-        "task_id": task_id,
-        "message": f"On it — working on: {task_text[:100]}",
-    }
-    yield {"type": "done"}
+    # Step 5: Route based on intent
+    if intent == "browser_task":
+        # Only browser tasks go to Queen for agent spawning
+        task_text = extracted_task or text
+        logger.info("Orchestrator: browser_task, delegating to Queen: %s", task_text[:80])
+        task_id = await _delegate_to_queen(task_text)
+        yield {
+            "type": "task_dispatched",
+            "task_id": task_id,
+            "message": f"On it — working on: {task_text[:100]}",
+        }
+        yield {"type": "done"}
+    else:
+        # chat / unclear / anything else — Gemini answers conversationally
+        logger.info("Orchestrator: chat intent, Gemini answering conversationally")
+        reply = await _gemini_chat_reply(text, history, rag_context)
+        yield {"type": "text", "content": reply}
+        yield {"type": "done"}
