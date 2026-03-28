@@ -7,6 +7,8 @@ MISTRAL_API_KEY = os.getenv("MISTRAL_API_KEY", "")
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
 ELEVENLABS_API_KEY = os.getenv("ELEVENLABS_API_KEY", "")
 SUPERMEMORY_API_KEY = os.getenv("SUPERMEMORY_API_KEY", "")
+MINIMAX_API_KEY = os.getenv("MINIMAX_API_KEY", "")
+MINIMAX_BASE_URL = os.getenv("MINIMAX_BASE_URL", "https://api.minimax.io/v1")
 
 # Avoid SDK key-precedence confusion: prefer GEMINI_API_KEY in this app.
 if GEMINI_API_KEY:
@@ -15,6 +17,7 @@ if GEMINI_API_KEY:
 QUEEN_MODEL = "gemini-3.1-pro-preview"
 WORKER_MODEL = "gemini-3-flash-preview"
 CHAT_MODEL = "gemini-3-flash-preview"
+MINIMAX_MODEL = "MiniMax-M2.7"
 
 ELEVENLABS_VOICE_ID = "21m00Tcm4TlvDq8ikWAM"
 ELEVENLABS_MODEL_ID = "eleven_flash_v2_5"
