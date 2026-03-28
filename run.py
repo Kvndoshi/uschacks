@@ -38,10 +38,9 @@ def main():
     print(f"  Frontend: http://localhost:{FRONTEND_PORT}")
     print(f"  Press Ctrl+C to stop both.\n")
 
-    # Start backend
-    backend_python = os.path.join(BACKEND_DIR, "venv", "bin", "python")
+    # Start backend — use current Python interpreter (works on Mac venv + Windows conda)
     backend = subprocess.Popen(
-        [backend_python, "run.py"],
+        [sys.executable, "run.py"],
         cwd=BACKEND_DIR,
     )
     processes.append(backend)
