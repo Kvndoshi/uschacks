@@ -1,9 +1,12 @@
 import asyncio
 import logging
 from langgraph.graph import StateGraph, END
-from mind.state import MindState
+from mind.state import MindState, HiveMindState
 from mind.queen import execute_task
 from models.task import TaskRequest
+from mind.prompt_loader import load_prompt
+from services.minimax_client import minimax_chat
+import json
 
 logger = logging.getLogger(__name__)
 
@@ -67,6 +70,63 @@ async def handle_failure(state: MindState) -> MindState:
     state["_retry_count"] = retry_count + 1
     state["phase"] = "handling_failure"
     logger.error(f"Task failed (attempt {retry_count + 1}): {state['errors']}")
+    return state
+
+
+async def classify_intent_node(state: HiveMindState) -> HiveMindState:
+    prompt = load_prompt("intent_classifier")
+    messages = [
+        {"role": "system", "content": prompt},
+        {"role": "user", "content": state.get("message_text", "")}
+    ]
+    import re
+    response = await minimax_chat(messages, model="minimax-m2.7")
+    try:
+        # MiniMax models may include <think> tags. Strip them entirely.
+        clean_text = re.sub(r'<think>.*?</think>', '', response, flags=re.DOTALL).strip()
+        
+        if "```json" in clean_text:
+            clean_resp = clean_text.split("```json")[1].split("```")[0].strip()
+        elif "```" in clean_text:
+            clean_resp = clean_text.split("```")[1].split("```")[0].strip()
+        else:
+            clean_resp = clean_text.strip()
+            
+        data = json.loads(clean_resp)
+        state["intent"] = data.get("intent", "information")
+        state["intent_confidence"] = data.get("confidence", 1.0)
+    except Exception as e:
+        logger.error(f"Failed to parse intent JSON: {response} - {e}")
+        state["intent"] = "information"
+        state["intent_confidence"] = 0.0
+        
+    state["phase"] = f"intent_classified_{state.get('intent', 'information')}"
+    return state
+
+async def quick_answer_node(state: HiveMindState) -> HiveMindState:
+    prompt = load_prompt("quick_answer")
+    messages = [
+        {"role": "system", "content": prompt},
+        {"role": "user", "content": state.get("message_text", "")}
+    ]
+    response = await minimax_chat(messages, model="minimax-m2.7")
+    state["response_text"] = response
+    state["phase"] = "completed"
+    return state
+
+async def synthesize_results_node(state: HiveMindState) -> HiveMindState:
+    prompt = load_prompt("result_synthesizer")
+    results_context = "\n".join(
+        [f"Result {k}: {v}" for k, v in state.get("worker_results", {}).items()]
+    )
+    user_msg = f"User Request: {state.get('master_task', '')}\n\nWorker Results:\n{results_context}"
+    messages = [
+        {"role": "system", "content": prompt},
+        {"role": "user", "content": user_msg}
+    ]
+    response = await minimax_chat(messages, model="minimax-m2.7")
+    state["response_text"] = response
+    state["phase"] = "completed"
     return state
 
 
