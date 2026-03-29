@@ -38,7 +38,11 @@ async def save_memory(
         if custom_id:
             kwargs["custom_id"] = custom_id
 
-        result = await client.memories.add(**kwargs)
+        add_fn = getattr(client.memories, "add", None) or getattr(client.memories, "create", None)
+        if add_fn is None:
+            logger.error("Supermemory SDK has no memories.add or memories.create method")
+            return None
+        result = await add_fn(**kwargs)
         doc_id = getattr(result, "id", None) or str(result)
         logger.info("Supermemory saved (id=%s): %s", doc_id, content[:80])
         return doc_id

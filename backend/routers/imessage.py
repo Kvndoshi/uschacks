@@ -91,7 +91,8 @@ async def _process_incoming_message(message: WebhookMessage):
         from mind.orchestrator import process
         from services import conversation_store, imessage_sender
 
-        # Load conversation history for context
+        logger.info("[iMessage pipeline] Processing message %s from %s", message.message_id, message.from_phone)
+
         history = await conversation_store.get_messages_by_conversation(
             message.from_phone, limit=10
         )
@@ -104,39 +105,38 @@ async def _process_incoming_message(message: WebhookMessage):
             conversation_history=history,
             source="imessage",
         ):
-            if event["type"] == "text":
+            etype = event.get("type")
+            if etype == "text":
                 full_reply += event["content"]
-            elif event["type"] == "task_dispatched":
+            elif etype == "task_dispatched":
                 task_dispatched = True
                 task_id = event["task_id"]
                 full_reply = event["message"]
-                # Associate task with phone for status updates
                 try:
                     await conversation_store.associate_task_with_conversation(
                         task_id, message.from_phone
                     )
                 except Exception:
                     pass
+            elif etype == "done":
+                pass
 
-        # Send reply via iMessage
-        if full_reply:
-            try:
-                await imessage_sender.send_imessage(
-                    to_phone=message.from_phone,
-                    text=full_reply,
-                )
-                logger.info(
-                    "Orchestrator reply sent to %s: %s",
-                    message.from_phone,
-                    full_reply[:60],
-                )
-            except Exception as e:
-                logger.error("Failed to send iMessage reply: %s", e)
+        logger.info("[iMessage pipeline] Orchestrator finished. Reply length=%d, task_dispatched=%s", len(full_reply), task_dispatched)
 
-        # Store outbound message
+        if not full_reply:
+            full_reply = "Got it!"
+            logger.warning("[iMessage pipeline] Orchestrator produced empty reply, using fallback")
+
+        result = await imessage_sender.send_imessage(
+            to_phone=message.from_phone,
+            text=full_reply,
+        )
+        if result.get("success"):
+            logger.info("[iMessage pipeline] Reply sent to %s: %s", message.from_phone, full_reply[:80])
+        else:
+            logger.error("[iMessage pipeline] Failed to send reply to %s: %s", message.from_phone, result.get("error"))
+
         try:
-            from datetime import datetime
-
             await conversation_store.add_message(
                 message_id=f"reply-{message.message_id}",
                 from_phone="system",
@@ -149,10 +149,9 @@ async def _process_incoming_message(message: WebhookMessage):
             pass
 
     except Exception as e:
-        logger.error("Orchestrator failed for message %s: %s", message.message_id, e)
+        logger.error("[iMessage pipeline] CRASHED for message %s: %s", message.message_id, e, exc_info=True)
         try:
             from services import imessage_sender
-
             await imessage_sender.send_imessage(
                 to_phone=message.from_phone,
                 text="Sorry, I had trouble processing that. Please try again.",
